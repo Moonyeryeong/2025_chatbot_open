@@ -1,8 +1,6 @@
 import streamlit as st
 from openai import OpenAI
 
-st.set_page_config(page_title="당뇨병 통합관리", page_icon="🩺")
-
 # 메인 아이콘/타이틀
 st.markdown(
     """

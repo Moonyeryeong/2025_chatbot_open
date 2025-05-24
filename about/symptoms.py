@@ -1,7 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="증상", page_icon="📌")
-st.markdown("<h2>📌 당뇨병 주요 증상</h2>", unsafe_allow_html=True)
+st.markdown("<h2>📌 당뇨 주요 증상</h2>", unsafe_allow_html=True)
 st.markdown("<p>아래 항목을 클릭하면 증상별 상세 설명을 볼 수 있어요.</p>", unsafe_allow_html=True)
 
 # 공통 스타일 (박스형 강조 배경)

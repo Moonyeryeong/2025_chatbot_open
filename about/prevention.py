@@ -1,7 +1,5 @@
 import streamlit as st
 
-st.set_page_config(page_title="예방", page_icon="🛡")
-
 st.markdown("<h2>🛡 당뇨 예방 가이드</h2>", unsafe_allow_html=True)
 st.markdown("<p>지금 시작하는 건강 습관, 당뇨 예방의 첫걸음이에요.</p>", unsafe_allow_html=True)
 

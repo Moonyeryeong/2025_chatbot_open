@@ -1,7 +1,5 @@
 import streamlit as st
 
-st.set_page_config(page_title="치료", page_icon="💊")
-
 st.markdown("<h2>💊 당뇨 치료 가이드</h2>", unsafe_allow_html=True)
 st.markdown("<p>정기적인 관리와 치료를 통해 합병증을 예방하고 건강을 지킬 수 있어요.</p>", unsafe_allow_html=True)
 

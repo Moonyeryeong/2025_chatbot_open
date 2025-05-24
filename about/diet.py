@@ -1,7 +1,5 @@
 import streamlit as st
 
-st.set_page_config(page_title="식단", page_icon="🍱")
-
 st.markdown("<h2>🍱 당뇨 식단 가이드</h2>", unsafe_allow_html=True)
 st.markdown("<p>건강한 혈당 관리를 위한 식단 요소들을 확인해보세요.</p>", unsafe_allow_html=True)
 
