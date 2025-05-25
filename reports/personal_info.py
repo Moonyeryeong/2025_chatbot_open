@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import sys
 import datetime
+from utils import save_patient_info, load_patient_info, clear_glucose_data, clear_medications_data
 
 if not st.session_state.get("logged_in", False):
     st.warning("🔒 로그인 해주세요.")
@@ -83,8 +84,13 @@ if submitted:
 
 # 삭제 처리
 if all_users:
-    if st.button("🗑️ 기존 리포트 삭제하기"):
-        all_users.pop(0)
+    if st.button("🗑️ 리포트 삭제하기"):
+        all_users.clear()
         save_patient_info(username, all_users, overwrite=True)
-        st.success(f"🗑️ {prev['name']}님의 리포트가 삭제되었습니다.")
+
+        # 추가: 해당 유저의 혈당 및 복약 데이터도 초기화
+        clear_glucose_data(username)
+        clear_medications_data(username)
+
+        st.success(f"🗑️ {prev['name']}님의 리포트 및 데이터가 삭제되었습니다.")
         st.rerun()

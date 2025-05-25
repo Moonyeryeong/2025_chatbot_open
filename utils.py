@@ -93,3 +93,33 @@ def load_medications(user_id: str, filename="medications.json"):
             return data.get(user_id, [])
     except (FileNotFoundError, json.JSONDecodeError):
         return []
+
+
+#초기화
+def clear_glucose_data(user_id, filename="glucose.json"):
+    path = os.path.join("data", filename)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            all_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        all_data = {}
+
+    if user_id in all_data:
+        del all_data[user_id]
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(all_data, f, ensure_ascii=False, indent=2)
+
+def clear_medications_data(user_id, filename="medications.json"):
+    path = os.path.join("data", filename)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            all_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        all_data = {}
+
+    if user_id in all_data:
+        del all_data[user_id]
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(all_data, f, ensure_ascii=False, indent=2)
