@@ -94,6 +94,15 @@ def load_medications(user_id: str, filename="medications.json"):
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
+#혈당 불러오기
+def load_glucose(user_id: str, filename="glucose.json"):
+    path = os.path.join("data", filename)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data.get(user_id, [])
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
 #초기화
 def clear_glucose_data(user_id, filename="glucose.json"):

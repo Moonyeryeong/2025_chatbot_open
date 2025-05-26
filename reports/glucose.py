@@ -2,17 +2,15 @@ import streamlit as st
 import datetime
 import os
 import json
-import matplotlib.pyplot as plt
 import pandas as pd
 import altair as alt
-from utils import load_patient_info
 
 if not st.session_state.get("logged_in", False):
     st.warning("🔒 로그인 해주세요.")
     st.stop()
 
 username = st.session_state["username"]
-user_id = username  # 유저 ID로 로그인 ID 사용
+user_id = username
 
 st.title("🩸 혈당 관리")
 
@@ -51,49 +49,46 @@ with st.form("glucose_form"):
         st.success("✅ 혈당 정보가 저장되었습니다.")
         st.rerun()
 
-# 시각화 및 삭제
-
+# 날짜별 expander 표시
 if user_data:
-    st.markdown("""
-        <style>
-        .sugar-table th, .sugar-table td {
-            padding: 8px 16px;
-            text-align: center;
-            font-size: 1.05em;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    # 표 헤더
     st.markdown("---")
-    st.markdown("#### 📋 혈당 기록")
-    col1, col2, col3, col4 = st.columns([3, 3, 3, 1])
-    with col1: st.markdown("**날짜**")
-    with col2: st.markdown("**시간**")
-    with col3: st.markdown("**혈당**")
-    with col4: st.markdown("**삭제**")
+    st.markdown("#### 📋 혈당 기록 (날짜별로 접기/펼치기)")
 
-    # 표 데이터 행
-    for i, entry in enumerate(user_data):
-        col1, col2, col3, col4 = st.columns([3, 3, 3, 1])
-        with col1: st.write(str(entry["date"]))
-        with col2: st.write(str(entry["time"]))
-        with col3: st.write(f"{entry['glucose']} mg/dL")
-        with col4:
-            if st.button("삭제", key=f"delete_{i}"):
-                user_data.pop(i)
-                all_data[user_id] = user_data
-                with open(path, "w", encoding="utf-8") as f:
-                    json.dump(all_data, f, ensure_ascii=False, indent=2)
-                st.rerun()
+    # 데이터프레임으로 정렬
+    df = pd.DataFrame(user_data)
+    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
+    df.sort_values(["date", "time"], inplace=True)
+    
+    # 날짜별 그룹핑하여 expander로
+    for day, group in df.groupby("date"):
+        with st.expander(f"{day} 혈당 기록", expanded=False):
+            for i, row in group.reset_index(drop=True).iterrows():
+                col1, col2, col3, col4 = st.columns([3, 3, 3, 1])
+                with col1: st.write(str(row["date"]))
+                with col2: st.write(str(row["time"]))
+                with col3: st.write(f"{row['glucose']} mg/dL")
+                with col4:
+                    if st.button("삭제", key=f"delete_{day}_{i}"):
+                        # 실제 인덱스 찾기(원본 user_data에서!)
+                        for idx, d in enumerate(user_data):
+                            if d["date"] == row["date"] and d["time"] == row["time"]:
+                                user_data.pop(idx)
+                                break
+                        all_data[user_id] = user_data
+                        with open(path, "w", encoding="utf-8") as f:
+                            json.dump(all_data, f, ensure_ascii=False, indent=2)
+                        st.rerun()
+else:
+    st.info("아직 혈당 기록이 없습니다. 데이터를 입력해 주세요.")
 
-    # Altair 시각화 준비
+st.markdown("---")
+
+# --- 그래프 시각화 ---
+if user_data:
+    st.markdown("#### 📊 혈당 변화 그래프")
     df = pd.DataFrame(user_data)
     df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
     df.sort_values("datetime", inplace=True)
-
-    st.markdown("---")
-    st.markdown("#### 📊 혈당 변화 그래프")
 
     # 기본 라인 차트
     line = alt.Chart(df).mark_line(
@@ -113,15 +108,15 @@ if user_data:
         clear="mouseout"
     )
 
-    # Hover 시 마커 표시 
     points = alt.Chart(df).mark_circle(size=65, color="#FF6F61").encode(
-        x="datetime:T",
-        y="glucose:Q",
-        tooltip=[
-            alt.Tooltip("datetime:T", title="날짜/시간"),
-            alt.Tooltip("glucose:Q", title="혈당")
-        ]
-    ).add_selection(hover).transform_filter(hover)
+    x="datetime:T",
+    y="glucose:Q",
+    tooltip=[
+        alt.Tooltip("datetime:T", title="날짜/시간"),
+        alt.Tooltip("glucose:Q", title="혈당")
+    ]
+).add_params(hover).transform_filter(hover)
+
 
     # 기준선
     low_line = alt.Chart(pd.DataFrame({"y": [126]})).mark_rule(
@@ -132,7 +127,6 @@ if user_data:
         color="#98FB98", strokeDash=[4, 2]
     ).encode(y="y:Q")
 
-    # 기준선 라벨
     low_label = alt.Chart(pd.DataFrame({"y": [125]})).mark_text(
         align="left", dx=5, dy=-5, color="#87CEEB"
     ).encode(
@@ -147,20 +141,16 @@ if user_data:
         text=alt.value("식후 2시간 기준 (200)")
     )
 
-    # 최종 차트 조합
     chart = (line + points + low_line + high_line + low_label + high_label).properties(
         width=700,
         height=350
     ).interactive()
 
-    # 출력
     st.altair_chart(chart, use_container_width=True)
 
-else:
-    st.info("아직 혈당 기록이 없습니다. 데이터를 입력해 주세요.")
 st.markdown("---")
 
-#목표혈당 안내
+# 목표혈당 안내 (동일)
 st.markdown("#### 🎯목표 혈당")
 st.markdown("목표 혈당에 달성했는지 확인하세요!")
 st.markdown("""
@@ -191,4 +181,3 @@ st.markdown("""
   </tbody>
 </table>
 """, unsafe_allow_html=True)
-

@@ -1,125 +1,123 @@
 import streamlit as st
-from openai import OpenAI
 import pandas as pd
-import requests
-import glob, os, re
+import glob, os, json, re
+from openai import OpenAI
 
-# st.set_page_config(page_title="당뇨병 챗봇", page_icon="💬")
+# ----------- 로그인 확인 -----------
 if not st.session_state.get("logged_in", False):
     st.warning("🔒 로그인 해주세요.")
     st.stop()
+username = st.session_state["username"]
 
-
-# === 1. secrets.toml에서 API Key 값 불러오기 ===
+# --- OpenAI Key (secrets.toml) ---
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-API_KEY = st.secrets["API_KEY"]
-base_url = st.secrets["base_url"]
 
-# === 2. api_info_list 및 엔드포인트 정의 ===
-api_info_list = [
-    # 8개 직접 호출형
-    {"name": "폐암환자 당뇨병 병력 여부", "endpoint": "https://apis.data.go.kr/B551172/Lung08", "params": {"serviceKey": API_KEY, "type": "json"}},
-    {"name": "대장암 환자 당뇨병 병력 여부", "endpoint": "https://apis.data.go.kr/B551172/Colon08", "params": {"serviceKey": API_KEY, "type": "json"}},
-    {"name": "신장암 환자 당뇨병 병력 여부", "endpoint": "https://apis.data.go.kr/B551172/Kidney08", "params": {"serviceKey": API_KEY, "type": "json"}},
-    {"name": "췌장암 환자 당뇨병 병력 여부", "endpoint": "https://apis.data.go.kr/B551172/Pancreatic08", "params": {"serviceKey": API_KEY, "type": "json"}},
-    {"name": "위암 환자 당뇨병 병력 여부", "endpoint": "https://apis.data.go.kr/B551172/Gastric08", "params": {"serviceKey": API_KEY, "type": "json"}},
-    {"name": "간암 환자 당뇨병 병력 여부", "endpoint": "https://apis.data.go.kr/B551172/Liver08", "params": {"serviceKey": API_KEY, "type": "json"}},
-    {"name": "담도암 환자 당뇨병 병력 여부", "endpoint": "https://apis.data.go.kr/B551172/Cholan08", "params": {"serviceKey": API_KEY, "type": "json"}},
-    {"name": "전립선암 환자 당뇨병 병력 여부", "endpoint": "https://apis.data.go.kr/B551172/Prostate08", "params": {"serviceKey": API_KEY, "type": "json"}},
-    # Swagger 5개 path 추가
-    {"name": "국민건강보험공단_당뇨병의료이용률_20181231", "endpoint": base_url + "/15064610/v1/uddi:cc3d9af4-8345-4821-8d0d-c3bf57b412a8", "params": {"serviceKey": API_KEY, "page": 1, "perPage": 10, "returnType": "JSON"}},
-    {"name": "국민건강보험공단_당뇨병의료이용률_20201231", "endpoint": base_url + "/15064610/v1/uddi:02fd0457-42eb-4fdb-b85e-9922c12db10e", "params": {"serviceKey": API_KEY, "page": 1, "perPage": 10, "returnType": "JSON"}},
-    {"name": "국민건강보험공단_당뇨병의료이용률_20230807", "endpoint": base_url + "/15064610/v1/uddi:c0174de2-33d0-4db9-a14d-c17aed2f845e", "params": {"serviceKey": API_KEY, "page": 1, "perPage": 10, "returnType": "JSON"}},
-    {"name": "국민건강보험공단_당뇨병의료이용률_20221231", "endpoint": base_url + "/15064610/v1/uddi:765bd3dd-f432-49b2-840b-e10e1e19477f", "params": {"serviceKey": API_KEY, "page": 1, "perPage": 10, "returnType": "JSON"}},
-    {"name": "국민건강보험공단_당뇨병의료이용률_20231231", "endpoint": base_url + "/15064610/v1/uddi:b9c96b9f-40d1-4c79-9474-fd0bfb675a39", "params": {"serviceKey": API_KEY, "page": 1, "perPage": 10, "returnType": "JSON"}},
-]
-
-# === 3. 파일 데이터 통합 (csv/xlsx) ===
+# --- 데이터 폴더 내 모든 csv/xlsx 자동 통합 (공공데이터용) ---
 data_folder = "데이터"
 data_files = glob.glob(os.path.join(data_folder, "*.csv")) + glob.glob(os.path.join(data_folder, "*.xlsx"))
 df_list = []
 for file in data_files:
     if file.endswith(".csv"):
-        df = pd.read_csv(file)
+        df = pd.read_csv(file, dtype=str)
     elif file.endswith(".xlsx"):
-        df = pd.read_excel(file)
+        df = pd.read_excel(file, dtype=str)
     else:
         continue
     df["__sourcefile__"] = os.path.basename(file)
     df_list.append(df)
 all_data = pd.concat(df_list, ignore_index=True) if df_list else None
 
-# === 4. 공공API 자동 매핑/검색 함수 ===
-def api_autosearch(user_prompt):
-    # (1) 암종명별 API 매핑
-    disease_api_map = {
-        "폐암": "폐암환자 당뇨병 병력 여부",
-        "대장암": "대장암 환자 당뇨병 병력 여부",
-        "신장암": "신장암 환자 당뇨병 병력 여부",
-        "췌장암": "췌장암 환자 당뇨병 병력 여부",
-        "위암": "위암 환자 당뇨병 병력 여부",
-        "간암": "간암 환자 당뇨병 병력 여부",
-        "담도암": "담도암 환자 당뇨병 병력 여부",
-        "전립선암": "전립선암 환자 당뇨병 병력 여부"
-    }
-    for k, v in disease_api_map.items():
-        if k in user_prompt:
-            target = [api for api in api_info_list if api["name"] == v]
-            if not target:
-                return f"❌ 해당 암종({k})에 대한 API가 없습니다."
-            try:
-                resp = requests.get(target[0]["endpoint"], params=target[0]["params"], timeout=10)
-                data = resp.json()
-                return f"({k}) 데이터 예시: {str(data)[:400]}..."  # 일부만 표시
-            except Exception as e:
-                return f"API 오류({k}): {e}"
+# --- 리포트(개인정보) 파일에서 사용자별 정보 불러오기 ---
+def load_user_report(username):
+    path = "data/patient_data.json"
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get(username, {})
+    except Exception as e:
+        return {}
 
-    # (2) 연도 및 시도 기반 의료이용률 (ex. "2023년 서울특별시")
-    year_match = re.search(r"(\d{4})년", user_prompt)
-    city_list = ["서울특별시", "부산광역시", "경기도", "대구광역시", "인천광역시", "광주광역시"]
-    city_match = None
-    for city in city_list:
-        if city in user_prompt:
-            city_match = city
-            break
-    if year_match and city_match:
-        year = year_match.group(1)
-        api_targets = [api for api in api_info_list if api["name"].endswith(year + "1231") or api["name"].endswith(year)]
-        if not api_targets:
-            return f"❌ {year}년도 해당 데이터 API가 없습니다."
-        for api in api_targets:
-            try:
-                resp = requests.get(api["endpoint"], params=api["params"], timeout=10)
-                data = resp.json()
-                if "data" in data:
-                    for row in data["data"]:
-                        if city_match in row.get("시도", ""):
-                            return f"{year}년 {city_match}의 당뇨병 의료이용률: {row.get('지표값(퍼센트)', 'N/A')}%"
-                elif "response" in data and "body" in data["response"]:
-                    return f"{year}년 {city_match} 데이터(참고): {data['response']['body']}"
-            except Exception as e:
-                return f"API 오류({city_match}): {e}"
+# --- 사용자 정보(리포트) → system 프롬프트용 텍스트로 변환 ---
+def get_user_profile_text():
+    # 1. 세션에 최신 리포트가 있으면 우선 사용, 없으면 파일에서 불러오기
+    report = st.session_state.get("diabetes_report", None)
+    if not report or (isinstance(report, dict) and not report):  # 세션에 없으면 파일에서 불러옴
+        report = load_user_report(username)
+    # 만약 리스트라면(히스토리 저장) 최신(마지막)만 사용
+    if isinstance(report, list):
+        report_item = report[-1] if report else {}
+    else:
+        report_item = report
 
-    # (3) 기타(직접 검색이 불가할 때)
+    # 최신 복용약 리스트: 리포트에서 사용하는 함수와 동일하게 불러오기!
+    from utils import load_medications  # utils.py에 있다고 가정
+    med_list = load_medications(username)  # username에 맞는 약 데이터 가져오기
+
+    # 약 목록 텍스트 포맷 (예: 날짜, 시간, 약 이름)
+    if med_list:
+        meds_str = "; ".join([
+            f"{med['복용 날짜']} {med['복용 시간']} - {med['약 이름']}"
+            for med in med_list
+        ])
+    else:
+        meds_str = "미입력"
+
+    # system 프롬프트용 텍스트
+    return (
+        f"이 사용자의 건강 리포트 정보는 다음과 같습니다.\n"
+        f"이름: {report_item.get('name', '미입력')}, "
+        f"나이: {report_item.get('age', '미입력')}, "
+        f"성별: {report_item.get('gender', '미입력')}, "
+        f"키: {report_item.get('height', '미입력')}cm, "
+        f"몸무게: {report_item.get('weight', '미입력')}kg, "
+        f"공복 혈당: {report_item.get('fasting_glucose', '미입력')}mg/dL, "
+        f"당화혈색소: {report_item.get('hba1c', '미입력')}, "
+        f"혈압: {report_item.get('bp_sys', '미입력')} / {report_item.get('bp_dia', '미입력')} mmHg, "
+        f"BMI: {report_item.get('bmi', '미입력')}, "
+        f"복용약: {meds_str}\n"
+        "답변 시 이 정보를 최대한 활용해 맞춤 설명을 해주세요."
+    )
+
+# --- 파일 데이터 자동검색 (CSV/XLSX) ---
+def file_data_search(user_prompt, max_results=3):
+    if all_data is None:
+        return None
+    years = re.findall(r"\d{4}", user_prompt)
+    locations = ["서울", "특별시", "부산", "광역시", "경기도", "인천", "대구", "광주", "대전", "울산", "세종"]
+    location_found = [loc for loc in locations if loc in user_prompt]
+    disease_words = ["당뇨", "의료이용률", "유병률", "환자수", "분율", "비율"]
+    disease_found = [d for d in disease_words if d in user_prompt]
+    keywords = years + location_found + disease_found + user_prompt.split()
+
+    def row_score(row):
+        row_text = " ".join([str(x) for x in row.values])
+        score = sum([k in row_text for k in keywords])
+        return score
+
+    scored_rows = [(row_score(row), row) for idx, row in all_data.iterrows()]
+    filtered = [r for s, r in sorted(scored_rows, key=lambda x: -x[0]) if s > 0][:max_results]
+    if filtered:
+        outs = []
+        for r in filtered:
+            src = r["__sourcefile__"]
+            show = pd.DataFrame(r).T.drop(columns=["__sourcefile__"], errors="ignore")
+            outs.append(f"<b>파일:</b> {src}\n\n" + show.to_html(index=False, escape=False))
+        return "<br><br>".join(outs)
     return None
 
-# === 5. 파일 데이터 검색 함수 ===
-def file_data_search(user_prompt):
-    if all_data is not None:
-        for idx, row in all_data.iterrows():
-            row_text = " ".join(map(str, row.values))
-            if any(keyword in user_prompt for keyword in [str(row[col]) for col in all_data.columns]):
-                return f"CSV/엑셀 데이터 예시: {row.to_dict()}"
-    return None
-
-# === 6. 챗봇 UI/메시지 ===
+# --- 챗봇 UI 및 system 프롬프트 ---
 api_key = OPENAI_API_KEY
 
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
-        {"role": "system", "content": "당뇨병 데이터/통계/약물/의료이용 등 모든 정보를 참고해 답변해 주세요."},
-        {"role": "assistant", "content": "안녕하세요! 당뇨병 관리와 관련된 궁금한 점을 자유롭게 물어보세요 😊"}
+        {"role": "system", "content": "아래 사용자 리포트 및 데이터 파일 기반으로 답변하세요.\n" + get_user_profile_text()},
+        {"role": "assistant", "content": "안녕하세요! 당뇨병 및 건강관리에 대해 궁금한 점을 자유롭게 물어보세요 😊"}
     ]
+else:
+    # system 메시지 최신화 (리포트가 바뀌면 항상 최신 정보 사용)
+    st.session_state["messages"][0]["content"] = "아래 사용자 리포트 및 데이터 파일 기반으로 답변하세요.\n" + get_user_profile_text()
 
 def kakao_message(content, is_user=False):
     if is_user:
@@ -145,27 +143,22 @@ user_prompt = st.chat_input("궁금한 점을 입력해 주세요 :)")
 if user_prompt:
     st.session_state["messages"].append({"role": "user", "content": user_prompt})
 
-    # 1순위: 공공API에서 답변
-    api_msg = api_autosearch(user_prompt)
-    if api_msg:
-        msg = api_msg
+    # 1순위: 파일 데이터 검색
+    file_msg = file_data_search(user_prompt)
+    if file_msg:
+        msg = file_msg
     else:
-        # 2순위: 파일 데이터에서 답변
-        file_msg = file_data_search(user_prompt)
-        if file_msg:
-            msg = file_msg
-        else:
-            # 3순위: OpenAI로 답변
-            try:
-                with st.spinner("챗봇이 답변을 작성 중입니다..."):
-                    client = OpenAI(api_key=api_key)
-                    response = client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=st.session_state["messages"]
-                    )
-                    msg = response.choices[0].message.content.strip()
-            except Exception as e:
-                msg = f"⚠️ 오류: {e}"
+        # 2순위: OpenAI로 답변 (리포트 자동 반영)
+        try:
+            with st.spinner("챗봇이 답변을 작성 중입니다..."):
+                client = OpenAI(api_key=api_key)
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=st.session_state["messages"]
+                )
+                msg = response.choices[0].message.content.strip()
+        except Exception as e:
+            msg = f"⚠️ 오류: {e}"
 
     st.session_state["messages"].append({"role": "assistant", "content": msg})
     kakao_message(msg, is_user=False)
