@@ -1,62 +1,139 @@
 import streamlit as st
-from openai import OpenAI
+import base64
 
-# (주의) st.set_page_config는 main.py에만 있음. 여기선 절대 쓰지 마세요!
+# # 이미지 base64 인코딩 함수
+# def get_base64_image(image_path):
+#     with open(image_path, "rb") as img_file:
+#         return f"data:image/png;base64,{base64.b64encode(img_file.read()).decode()}"
 
-# 상단 타이틀+슬로건
-st.markdown("""
-<div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 18px;">
-    <span style="font-size: 2.8rem;">🩺</span>
-    <h1 style="margin-bottom: 0; font-size:2.1rem; color:#246189;">당뇨병 통합관리</h1>
-    <div style="font-size: 1.15rem; color: #277C5D;">건강한 변화, 오늘부터 함께 시작해요</div>
+# # 배경 이미지
+# img_url = get_base64_image("./data/back_img.jpg") 
+# .hero .background {{
+#     position: absolute;
+#     top: 0; left: 0;
+#     width: 100%; height: 100%;
+#      background: linear-gradient(
+#         rgba(0,0,0,0.4), rgba(0,0,0,0.4)
+#     ), url('{img_url}');
+#     background-size: cover;
+#     background-position: center;
+#     filter: blur(2px);
+#     opacity: 0.3;
+#     z-index: 1;}}
+
+
+# 상단 Hero 배너 섹션
+st.markdown(f"""
+<style>
+.hero {{
+    position: relative;
+    height: 90vh; 
+    border-radius: 0;
+    overflow: hidden;
+    margin-bottom: 40px;
+}}            
+.hero .content {{
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding-top: 200px;
+    color: #222;
+}}
+.hero .content h1 {{
+    font-size: 4.2rem;
+    margin-bottom: 10px;
+    background: linear-gradient(to right, #4a6cf7, #7acdf4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}}
+.hero .content p {{
+    font-size: 1.3rem;
+    max-width: 700px;
+    margin: auto;
+    color: #333;
+}}
+</style>
+<div class="hero">
+    <div class="background"></div>
+    <div class="content">
+        <h2 style="font-size: 1.8rem;">당뇨병 통합관리 서비스</h2>
+        <h1>DiabetesCare service</h1>
+        <p>당뇨병 환자를 위한 대화형 인공지능과<br>
+        맞춤형 건강관리 기능이 결합된<br>
+        스마트 통합 서비스</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
-
-# 주요 기능 카드형 안내
+# 사용 흐름
 st.markdown("""
-<div style="display: flex; gap: 18px; justify-content: center; margin-bottom: 22px;">
-    <div style="background:#F6F8FC; border-radius:15px; padding:18px 22px; width:210px; box-shadow:0 2px 7px #eef;">
-        <div style="font-size:2.1rem; text-align:center;">🤖</div>
-        <b style="font-size:1.07rem;">AI 건강챗봇</b>
-        <div style="font-size:0.97rem; color:#555; margin-top:6px;">
-            궁금증/고민 24시간 상담
-        </div>
+<div style='text-align:center; margin:40px 0;'>
+    <h4>🛠️ 서비스 사용 방법</h4>
+</div>
+<div style="display:flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 40px;">
+    <div style="background:#f1f6ff;padding:20px;border-radius:12px;width:220px;">
+        <h5 style="color:#4a6cf7;">① 시작하기</h5>
+        <p style="font-size:0.88rem;">회원가입 후 <b>기본 건강정보</b>를 입력해요.</p>
     </div>
-    <div style="background:#E6F7EC; border-radius:15px; padding:18px 22px; width:210px; box-shadow:0 2px 7px #eef;">
-        <div style="font-size:2.1rem; text-align:center;">💊</div>
-        <b style="font-size:1.07rem;">복약·혈당관리</b>
-        <div style="font-size:0.97rem; color:#555; margin-top:6px;">
-            내 건강기록 간편 저장/확인
-        </div>
+    <div style="background:#eaf9f0;padding:20px;border-radius:12px;width:220px;">
+        <h5 style="color:#43b97f;">② 기록하기</h5>
+        <p style="font-size:0.88rem;">식단, 혈당, 약물 이력을 <b>간편하게 기록</b>해요.</p>
     </div>
-    <div style="background:#e5f1ff; border-radius:15px; padding:18px 22px; width:210px; box-shadow:0 2px 7px #eef;">
-        <div style="font-size:2.1rem; text-align:center;">📊</div>
-        <b style="font-size:1.07rem;">맞춤 건강리포트</b>
-        <div style="font-size:0.97rem; color:#555; margin-top:6px;">
-            목표·변화, 쉽고 알차게 분석
-        </div>
-    </div>
-    <div style="background:#fff6ec; border-radius:15px; padding:18px 22px; width:210px; box-shadow:0 2px 7px #eef;">
-        <div style="font-size:2.1rem; text-align:center;">💡</div>
-        <b style="font-size:1.07rem; white-space:nowrap; display:block; text-align:center;">
-            실천팁 & 동기부여
-        </b>
-        <div style="font-size:0.97rem; color:#555; margin-top:6px;">
-            오늘의 건강 메시지와 동기부여
-        </div>
+    <div style="background:#fff3e6;padding:20px;border-radius:12px;width:220px;">
+        <h5 style="color:#ff944d;">③ 피드백 받기</h5>
+        <p style="font-size:0.88rem;">챗봇과 리포트를 통해 <b>맞춤 건강관리</b>를 받아요!</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# 사용자 안내/행동 유도
+# CTA 메시지
 st.markdown("""
-<div style="text-align:center; margin-bottom:18px;">
-    <span style="font-size: 1.08rem; color:#2263ac;"><b>왼쪽 메뉴에서 원하는 기능을 선택해 시작해보세요!</b></span><br>
-    <span style="color: #396;">로그인하면 나만의 건강기록을 안전하게 저장할 수 있습니다.</span>
+<div style="text-align: center; padding: 20px; border-radius: 10px; margin: 30px 0;">
+    <h4 style="color: #4a6cf7;">건강한 변화, 지금 당신과 함께 시작합니다.</h4>
+    <p style="color: gray;">작은 기록이 큰 변화를 만들어냅니다.</p>
 </div>
 """, unsafe_allow_html=True)
 
-# 따뜻한 메시지/동기부여
-st.info("✨ 오늘부터 건강한 습관, 저희와 함께 만들어봐요!")
+# 기능 카드 섹션
+def feature_card(title, icon, target):
+    with st.container():
+        if st.button(f"{icon} {title}", use_container_width=True, key=target):
+            st.session_state["__page__"] = target
+            st.rerun()
+
+st.markdown("""
+            <div style='text-align:center; margin:40px 0;'> <h4>🔎 주요 기능 바로가기</h4>
+</div>""", unsafe_allow_html=True)
+cols2 = st.columns(3)
+features2 = [
+    ("혈당관리", "🧪", "reports/glucose.py"),
+    ("식단기록", "📋", "reports/personal_diet.py"),
+    ("복용약", "💊", "reports/medication.py"),
+]
+for col, (title, icon, target) in zip(cols2, features2):
+    with col:
+        feature_card(title, icon, target)
+
+# # 강조 메시지
+# st.markdown("""
+# <div style="background-color: #fef9f3; padding: 30px 20px; border-radius: 12px; margin: 40px 0;">
+#     <h4 style="text-align:center; color:#333;">왜 <span style='color:#4a6cf7;'>DiabetesCare AI</span>일까요?</h4>
+#     <p style='text-align:center; max-width: 680px; margin:auto; color:#666; font-size:0.95rem;'>
+#         우리는 단순한 기록 도구가 아닙니다.<br>
+#         당신의 하루에 스며드는 건강 동반자, <b>지속 가능한 당뇨 관리</b>를 함께합니다.
+#     </p>
+# </div>
+# """, unsafe_allow_html=True)
+
+
+# 페이지 이동 처리
+if "__page__" in st.session_state:
+    st.switch_page(st.session_state.pop("__page__"))
+
+# 푸터
+st.markdown("""
+<hr>
+<div style='text-align: center; font-size: 0.85rem; color: #aaa; margin-top:20px;'>
+  © 2025 DiabetesCare AI. "Image by Freepik" from www.freepik.com
+</div>
+""", unsafe_allow_html=True)

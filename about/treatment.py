@@ -1,7 +1,25 @@
 import streamlit as st
 
-st.markdown("<h2>💊 당뇨 치료 가이드</h2>", unsafe_allow_html=True)
-st.markdown("<p>정기적인 관리와 치료를 통해 합병증을 예방하고 건강을 지킬 수 있어요.</p>", unsafe_allow_html=True)
+def guide_card(title, emoji, description):
+    st.markdown(f"""
+        <div style="
+            background: #f6f7fa;
+            border: 1.5px solid #e5e6e9;
+            border-radius: 13px;
+            margin-bottom: 16px;
+            padding: 19px 23px 14px 22px;
+            box-shadow: 0 2px 7px rgba(80, 85, 100, 0.07);
+            display: flex;
+            align-items: flex-start;
+            height: 200px;
+        ">
+            <div style='font-size:1.35em; margin-right:10px; margin-top:3px;'>{emoji}</div>
+            <div>
+                <b style="font-size:1.13em; color:#232323;">{title}</b>
+                <div style="font-size:1.03em; color:#444; margin-top:6px;">{description}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
 def treatment_card(title, emoji, description, color):
     st.markdown(f"""
@@ -11,81 +29,130 @@ def treatment_card(title, emoji, description, color):
         </div>
     """, unsafe_allow_html=True)
 
-with st.expander("💊 당뇨 약물 설명"):
-    treatment_card(
-        "메트포르민",
-        "💊",
-        "제2형 당뇨의 1차 치료제로 가장 널리 사용됩니다. 간에서 포도당 생성을 억제하고, 인슐린 감수성을 높이며, 체중 증가나 저혈당 위험이 적습니다.",
-        "#f3e5f5"
-    )
+# 상단 제목 및 설명
+st.markdown("""
+<h2>🏥 당뇨 치료 가이드</h2>
+<p style="color:#555; margin-bottom:18px;">
+정기적인 관리와 치료는 당뇨 합병증 예방과 건강한 삶의 핵심입니다.<br>
+대표 치료제와 혈당 관리 원칙을 확인해보세요.
+</p>
+""", unsafe_allow_html=True)
 
-    treatment_card(
-        "글리메피리드 / 글리클라지드 / 글리벤클라미드",
-        "💊",
-        "이들은 '설폰요소제' 계열로, 췌장에서 인슐린 분비를 촉진합니다. 혈당을 빠르게 낮출 수 있지만 저혈당 위험이 존재하며 체중 증가도 동반될 수 있습니다.",
-        "#f3e5f5"
-    )
+st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
+st.markdown("#### 🧪 당뇨 치료제")
+st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
-    treatment_card(
-        "DPP-4 억제제",
-        "💊",
-        "인크레틴 호르몬을 분해하는 효소(DPP-4)를 억제해 인슐린 분비를 증가시키고 글루카곤을 억제합니다. 저혈당 위험이 낮고 체중에 영향이 적습니다.",
-        "#f3e5f5"
-    )
-
-    treatment_card(
-        "SGLT-2 억제제",
-        "💊",
-        "신장을 통해 포도당을 소변으로 배출시켜 혈당을 낮춥니다. 체중 감소, 혈압 감소, 심장·신장 보호 효과도 보고되고 있어 최근 많이 사용됩니다.",
-        "#f3e5f5"
-    )
-
-    treatment_card(
-        "GLP-1 유사체",
-        "💉",
-        "인크레틴(GLP-1) 유사 호르몬을 모방해 인슐린 분비를 촉진하고 식욕을 억제하며 체중 감량에 효과적입니다. 주사제로 사용되며 위 배출 지연 작용도 있습니다.",
-        "#f3e5f5"
-    )
-
-    treatment_card(
-        "인슐린",
-        "🩸",
-        "제1형 당뇨는 필수, 제2형 당뇨에서도 약물만으로 조절이 어려운 경우 사용됩니다. 식사 전 또는 장기 지속형으로 투여되며, 지속적인 혈당 모니터링이 필요합니다.",
-        "#f3e5f5"
-    )
+def symptoms_card(title, emoji, description, note="", height=150):
+    return f"""
+        <div style='
+            background: #f6f7fa;
+            border: 1.5px solid #e4e4ec;
+            border-radius: 12px;
+            padding: 16px 20px;
+            height: {height}px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        '>
+            <div>
+                <div style="font-size:1.05rem; font-weight:600; color:#333; display:flex; align-items:center; margin-bottom:6px;">
+                    <span style="font-size:1.3rem; margin-right:8px;">{emoji}</span>{title}
+                </div>
+                <div style="font-size:0.95rem; color:#444; line-height:1.45;">{description}</div>
+            </div>
+            <div style="font-size:0.87rem; color:#4a4a4a; font-weight:500; margin-top:10px;">
+                {note}  
+        </div>
+    """
 
 
-with st.expander("📉 혈당 모니터링"):
-    treatment_card(
-        "정기적인 혈당 체크",
-        "📉",
-        """
-        자가 혈당 측정기를 통해 공복 및 식후 혈당을 확인하고, 이상 수치를 빠르게 조정할 수 있도록 도와줍니다.
 
-        🔎 **정상 건강 지표 참고 범위**  
-        - **공복 혈당**: 70 ~ 99 mg/dL  
-        - **당화혈색소 (HbA1c)**: 4.0 ~ 5.6%  
-        - **혈압 (수축기 / 이완기)**: 90~119 / 60~79 mmHg  
+#카드 출력
+rows = [
+    ("메트포르민", "💊", "1차 치료제로 많이 사용되며, 인슐린 저항성을 개선하고 간에서 포도당 생성을 억제하는 효과가 있습니다."),
+    ("설포닐유레아", "💊", "췌장에서 인슐린 분비를 촉진하여 혈당을 낮춥니다."),
+    ("DPP-4 억제제", "💊", "인슐린 분비를 촉진하고 글루카곤 분비를 억제하여 혈당을 조절하는 약물입니다."),
+    ("SGLT-2 억제제", "💊", "신장에서 포도당 흡수를 억제하여 혈당을 낮추는 약물로, 최근에는 만성콩팥병과 심혈관 질환에 대한 보호 효과도 입증되고 있습니다."),
+    ("GLP-1 수용체 작용제제", "💉", "인슐린 분비를 촉진하고 식욕을 억제하는 효과가 있어, 당뇨병 치료와 함께 비만 치료에도 활용 됩니다."),
+    ("인슐린", "💉", "제1형 당뇨병 환자에게 필수적이며, 제2형 당뇨병 환자에서도 혈당 조절이 어려운 경우 사용됩니다."),
+]
 
-        위 수치를 초과하거나 지속적으로 변동이 큰 경우, 반드시 전문가와 상담이 필요합니다.
-        """,
-        "#e3f2fd"
-    )
 
-with st.expander("🏃 생활습관 개선"):
-    treatment_card(
-        "건강한 일상 습관",
-        "🏃",
-        """
-        운동, 체중 감량, 금연, 스트레스 관리 등은 약물만큼이나 중요한 요소예요. 특히,
+for i in range(0, len(rows), 2):
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(symptoms_card(*rows[i]), unsafe_allow_html=True)
+    with col2:
+        st.markdown(symptoms_card(*rows[i+1]), unsafe_allow_html=True)
 
-        ✔ **운동**은 주 150분 이상 유산소 운동 + 근력운동 병행  
-        ✔ **식사**는 혈당지수(GI)가 낮은 식품 위주, 일정한 식사 시간 유지  
-        ✔ **체중 감량**은 전체 체중의 5~10%만 줄여도 혈당 개선에 큰 효과  
-        ✔ **수면 부족과 스트레스**는 혈당 급등을 유발하므로 반드시 관리 필요
 
-        🧘 생활 전반의 **균형 있는 루틴**이 혈당 안정에 직접적인 영향을 줍니다!
-        """,
-        "#e8f5e9"
-    )
+st.markdown("---")
 
+# 혈당 모니터링
+st.markdown("#### 📉 혈당 모니터링")
+st.markdown(f"""
+<div style="
+    background: #f6f7fa;
+    border: 1.5px solid #e5e6e9;
+    border-radius: 13px;
+    padding: 18px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+">
+    <div style="display: flex; align-items: center; font-weight: bold; font-size: 1.1rem; margin-bottom: 6px; color:#232323;">
+        <span style="font-size: 1.4rem; margin-right: 10px;">✅</span> 정기적으로 혈당을 기록해요!
+    </div>
+    <div style="color: #444; font-size: 0.96rem; flex: 1;">
+        💡 자가 혈당 측정기로 <b>공복·식후 혈당</b>을 확인, <b>이상 수치가 계속된다면</b> 전문의 상담이 필요합니다.<br>
+        <span style='color:#767676; font-size:0.98em;'>
+        ✔ 공복 혈당: 70~99 mg/dL<br>
+        ✔ 식후 2시간 혈당: 90~140 mg/dL<br>
+        ✔ 당화혈색소(HbA1c): 4.0~5.6%<br>
+        ✔ 혈압(수축/이완): 90~119 / 60~79 mmHg
+        </span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+st.markdown("---")
+# 생활습관 개선
+st.markdown("### 🏃 생활습관 개선")
+st.markdown(f"""
+<div style="
+    background: #f6f7fa;
+    border: 1.5px solid #e5e6e9;
+    border-radius: 13px;
+    padding: 18px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+">
+    <div style="display: flex; align-items: center; font-weight: bold; font-size: 1.1rem; margin-bottom: 6px; color:#232323;">
+        <span style="font-size: 1.4rem; margin-right: 10px;">🔄</span> 건강한 일상 습관을 만들어 봐요!
+    </div>
+    <div style="color: #444; font-size: 0.96rem; flex: 1;">
+        <b>💡 운동, 체중 감량, 금연, 스트레스</b> 등의 관리는 중요합니다.<br>
+        <span style='color:#767676; font-size:0.98em; margin-bottom: 3px;'>
+        ✔ 운동: 하루에 30분 이상 유산소+근력 운동<br>
+        ✔ 식사: 혈당지수(GI) 낮은 식품 위주 섭취, 규칙적 식사<br>
+        ✔ 체중: 전체 체중의 5~10%만 감량해도 혈당 개선<br>
+        ✔ 수면·스트레스 관리도 꼭 필요
+        </span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# 하단 안내 문구
+st.markdown("""
+<div style="color:#767676; font-size:0.97em; margin-top:14px;">
+✔️ <b>복용 중인 약은 반드시 전문의와 상의하여 변경/조절해야 하며, 생활습관 개선도 함께 병행하세요.</b>
+</div>
+""", unsafe_allow_html=True)

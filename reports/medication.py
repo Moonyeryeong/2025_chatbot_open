@@ -1,81 +1,3 @@
-# import streamlit as st
-# import datetime
-# from utils import load_patient_info, load_medications, save_medications
-# import plotly.express as px
-# import pandas as pd
-
-# if not st.session_state.get("logged_in", False):
-#     st.warning("🔒 로그인 해주세요.")
-#     st.stop()
-
-# username = st.session_state["username"]
-# user_id = username
-
-# st.title("💊 복용약 관리")
-
-# # 복약 데이터 로딩
-# med_list = load_medications(user_id)
-
-# # 입력 폼
-# st.markdown("### ✏️ 복용약 정보 입력")
-# diabetes_meds = [
-#     "메트포르민", "글리메피리드", "글리클라지드", "글리벤클라미드",
-#     "DPP-4 억제제", "SGLT-2 억제제", "GLP-1 유사체", "인슐린", "기타"
-# ]
-
-# with st.form("med_input_form"):
-#     selected_meds = st.multiselect("약 이름(중복 선택 가능)", diabetes_meds)
-#     custom_meds = []
-#     if "기타" in selected_meds:
-#         other_input = st.text_input("기타 약 입력 (쉼표로 구분)")
-#         if other_input:
-#             custom_meds = [name.strip() for name in other_input.split(",") if name.strip()]
-#     final_meds = [m for m in selected_meds if m != "기타"] + custom_meds
-
-#     med_date = st.date_input("복용 날짜", value=datetime.date.today())
-#     med_time = st.time_input("복용 시간", value=datetime.time(9, 0))
-#     med_memo = st.text_input("비고")
-
-#     if st.form_submit_button("추가") and final_meds:
-#         for med in final_meds:
-#             med_list.append({
-#                 "약 이름": med,
-#                 "복용 날짜": med_date.strftime("%Y-%m-%d"),
-#                 "복용 시간": med_time.strftime("%H:%M"),
-#                 "비고": med_memo
-#             })
-#         save_medications(user_id, med_list)
-#         st.success("💾 약 정보가 저장되었습니다.")
-#         st.rerun()
-# st.markdown("---")
-
-# # 복용중인 약 목록
-# if med_list:
-#     st.markdown("#### 📋 복용약 기록")
-#     col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1])
-#     with col1: st.markdown("**약 이름**")
-#     with col2: st.markdown("**복용 날짜**")
-#     with col3: st.markdown("**복용 시간**")
-#     with col4: st.markdown("**비고**")
-#     with col5: st.markdown("**삭제**")
-
-#     for i, med in enumerate(med_list):
-#         col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1])
-#         with col1: st.write(med["약 이름"])
-#         with col2: st.write(med["복용 날짜"])
-#         with col3: st.write(med["복용 시간"])
-#         with col4: st.write(med.get("비고", ""))
-#         with col5:
-#             if st.button("삭제", key=f"del_{i}"):
-#                 med_list.pop(i)
-#                 save_medications(user_id, med_list)
-#                 st.rerun()
-# else:
-#     st.info("복용중인 약 정보를 입력해 주세요.")
-
-# st.markdown("---")
-
-
 import streamlit as st
 import datetime
 import calendar
@@ -90,18 +12,27 @@ username = st.session_state["username"]
 user_id = username
 today = datetime.date.today()
 
-st.title("💊 복용약 관리")
+st.markdown("""
+    <h2>📋 복용약 관리</h2>
+    <p style="color:#555; margin-bottom:18px;"> 
+    복용하고 있는 약을 기록하세요.<br>
+    기록 된 복용약은 달력으로 확인하고 챗봇에게 맞춤 상담이 가능해요.
+    </p>
+    """, unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 
-# === 약 데이터 로드 ===
+#약 데이터 로드
 med_list = load_medications(user_id)
+med_df = pd.DataFrame(med_list)
+if not med_df.empty:
+    med_df["date"] = pd.to_datetime(med_df["복용 날짜"]).dt.date
 
-# === 입력 폼 ===
-st.markdown("### ✏️ 복용약 정보 입력")
+#입력 폼
+st.markdown("#### ✏️ 복용약 입력 ")
 diabetes_meds = [
-    "메트포르민", "글리메피리드", "글리클라지드", "글리벤클라미드",
-    "DPP-4 억제제", "SGLT-2 억제제", "GLP-1 유사체", "인슐린", "기타"
+    "메트포르민", "설포닐유레아", "글리네이드",
+    "DPP-4 억제제", "SGLT-2 억제제", "GLP-1 수용체 작용제", "인슐린", "기타"
 ]
-
 with st.form("med_input_form"):
     selected_meds = st.multiselect("약 이름(중복 선택 가능)", diabetes_meds)
     custom_meds = []
@@ -126,39 +57,81 @@ with st.form("med_input_form"):
         save_medications(user_id, med_list)
         st.success("💾 약 정보가 저장되었습니다.")
         st.rerun()
-
 st.markdown("---")
 
-# === 약 목록 표시 ===
+#월·날짜별 복용약 기록
 if med_list:
     st.markdown("#### 📋 복용약 기록")
-    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1])
-    with col1: st.markdown("**약 이름**")
-    with col2: st.markdown("**복용 날짜**")
-    with col3: st.markdown("**복용 시간**")
-    with col4: st.markdown("**비고**")
-    with col5: st.markdown("**삭제**")
 
-    for i, med in enumerate(med_list):
+    df = pd.DataFrame(med_list)
+    df["복용 날짜"] = pd.to_datetime(df["복용 날짜"])
+    df["year_month"] = df["복용 날짜"].dt.strftime("%Y-%m")
+    df["year_month_str"] = df["복용 날짜"].dt.strftime("%Y년 %m월")
+    df["date_str"] = df["복용 날짜"].dt.strftime("%Y-%m-%d")
+
+    col_month, col_date = st.columns([1.3, 2])
+    with col_month:
+        month_options = df["year_month"].unique()
+        month_labels = df.drop_duplicates("year_month")[["year_month", "year_month_str"]].set_index("year_month")["year_month_str"].to_dict()
+        month_choice = st.selectbox(
+            "년 월",
+            options=month_options,
+            format_func=lambda m: month_labels[m],
+            index=len(month_options)-1 
+        )
+
+    #선택 월의 날짜들만 뽑기
+    month_df = df[df["year_month"] == month_choice]
+    date_options = month_df["date_str"].unique()
+    with col_date:
+        date_choice = st.selectbox(
+            "날짜",
+            options=date_options,
+            format_func=lambda d: f"{d}",
+            index=len(date_options)-1  
+        )
+
+    #선택 날짜의 복용약 기록(삭제 포함)
+    date_df = month_df[month_df["date_str"] == date_choice].sort_values("복용 시간")
+    if not date_df.empty:
+        st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+        st.markdown(f"##### 📅 {date_choice} ")
         col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1])
-        with col1: st.write(med["약 이름"])
-        with col2: st.write(med["복용 날짜"])
-        with col3: st.write(med["복용 시간"])
-        with col4: st.write(med.get("비고", ""))
-        with col5:
-            if st.button("삭제", key=f"del_{i}"):
-                med_list.pop(i)
+        with col1: st.markdown("**약 이름**")
+        with col2: st.markdown("**복용 날짜**")
+        with col3: st.markdown("**복용 시간**")
+        with col4: st.markdown("**비고**")
+        with col5: st.markdown("**삭제**")
+        for idx, row in date_df.iterrows():
+            col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1])
+            with col1: st.write(row["약 이름"])
+            with col2: st.write(row["date_str"])
+            with col3: st.write(row["복용 시간"])
+            with col4: st.write(row["비고"])
+            if col5.button("삭제", key=f"del_{row['약 이름']}_{row['date_str']}_{row['복용 시간']}"):
+                # 실제 데이터에서 삭제
+                for i, m in enumerate(med_list):
+                    if (m["약 이름"] == row["약 이름"] and
+                        m["복용 날짜"] == row["date_str"] and
+                        m["복용 시간"] == row["복용 시간"]):
+                        med_list.pop(i)
+                        break
                 save_medications(user_id, med_list)
+                st.success("삭제되었습니다.")
                 st.rerun()
+    else:
+        st.info("해당 날짜의 복용약 기록이 없습니다.")
 else:
-    st.info("복용중인 약 정보를 입력해 주세요.")
+    st.info("복용약 정보를 입력해 주세요.")
 
 st.markdown("---")
 
-# === 🗓️ 캘린더 시각화 ===
-st.markdown("#### 🗓️ 약 복용 일정 캘린더")
 
-# 연도/월 선택
+#캘린더 시각화
+st.markdown("#### 🗓️ 복용약 캘린더")
+st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+
+#연도/월 선택
 years = list(range(today.year - 10, today.year + 2))
 if "calendar_year" not in st.session_state:
     st.session_state.calendar_year = today.year
@@ -167,9 +140,9 @@ if "calendar_month" not in st.session_state:
 
 c1, c2 = st.columns(2)
 with c1:
-    year = st.selectbox("년도 선택", years, index=years.index(st.session_state.calendar_year))
+    year = st.selectbox("년", years, index=years.index(st.session_state.calendar_year))
 with c2:
-    month = st.selectbox("월 선택", list(range(1, 13)), index=st.session_state.calendar_month - 1)
+    month = st.selectbox("월", list(range(1, 13)), index=st.session_state.calendar_month - 1)
 
 st.session_state.calendar_year = year
 st.session_state.calendar_month = month
@@ -192,19 +165,24 @@ with col_right:
 
 if med_list:
     med_names = sorted(set(m["약 이름"] for m in med_list))
-    selected_name = st.selectbox("🔍 특정 약 이름으로 필터링", ["전체 보기"] + med_names)
+    selected_name = st.selectbox("🔍 약 필터링", ["전체 보기"] + med_names)
     filtered_meds = med_list if selected_name == "전체 보기" else [m for m in med_list if m["약 이름"] == selected_name]
 
     def style_medication(name, time):
         med_colors = {
-            "메트포르민": "#2980b9", "글리메피리드": "#27ae60", "글리클라지드": "#8e44ad",
-            "글리벤클라미드": "#f39c12", "DPP-4 억제제": "#d35400", "SGLT-2 억제제": "#16a085",
-            "GLP-1 유사체": "#34495e", "인슐린": "#e74c3c", "기타": "#7f8c8d"
+            "메트포르민": "#FA8072", 
+            "설포닐유레아": "#9CAF88",
+            "글리네이드": "#A2B9BC", 
+            "DPP-4 억제제": "#FFD966", 
+            "SGLT-2 억제제": "#D8CAB8",  
+            "GLP-1 수용체 작용제": "#C3B1E1", 
+            "인슐린": "#3C4F76", 
+            "기타": "#C0C0C0", 
         }
-        color = next((c for k, c in med_colors.items() if k in name), "#2b7de9")
+        color = next((c for k, c in med_colors.items() if k in name), "#FA8072")  # fallback: salmon
         hour = int(time[:2]) if time[:2].isdigit() else 9
         icon = "🌞" if hour < 12 else "🌙"
-        return f"<span style='color: {color}; font-weight: bold;'>{icon} {name} ({time})</span>"
+        return f"<span style='color:{color};'>{icon} {name} ({time})</span>"
 
     def generate_calendar(year, month, meds):
         cal = calendar.Calendar(firstweekday=6)
@@ -266,4 +244,3 @@ if med_list:
     render_html_calendar(cal_grid)
 else:
     st.info("복용 약 정보가 있어야 캘린더를 표시할 수 있습니다.")
-

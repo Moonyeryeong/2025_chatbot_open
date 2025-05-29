@@ -13,53 +13,68 @@ username = st.session_state["username"]
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils import save_patient_info, load_patient_info
 
-st.markdown("<h2>📝 당뇨병 맞춤 건강 리포트</h2>", unsafe_allow_html=True)
-st.markdown("<p>건강 정보를 입력하고 맞춤 리포트를 받아보세요.</p>", unsafe_allow_html=True)
+st.markdown("""
+<h2>📝 당뇨 개인정보 리포트</h2>
+<p style="color:#555; margin-bottom:18px;">
+건강 정보를 입력하고 맞춤 상담을 받아보세요.<br>
+새로 검진 받은 결과나 겪은 증상을 입력하면 더 전문적인 챗봇 상담이 가능합니다.
+</p>
+""", unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 
 # 해당 유저의 기존 데이터 불러오기
 all_users = load_patient_info(username)
-
 if all_users:
     prev = all_users[0]
 else:
     prev = {}
 
-# 출생년도 리스트 (1920~현재년도)
 current_year = datetime.datetime.now().year
 years = list(range(current_year, 1919, -1))
 
-# 사용자 입력 폼
 with st.form("user_info", clear_on_submit=False):
     st.markdown("### 👤 기본 정보")
     col1, col2 = st.columns(2)
     with col1:
         name = st.text_input("이름", value=prev.get("name", ""))
         birth_year = st.selectbox("출생년도", years, index=years.index(prev.get("birth_year")) if prev.get("birth_year") else 0)
-        age = current_year - birth_year + 1  # 한국식 나이
+        age = current_year - birth_year + 1
         gender = st.selectbox("성별", ["남성", "여성"], index=0 if prev.get("gender", "남성") == "남성" else 1)
     with col2:
-        height = st.selectbox("키 (cm)", list(range(120, 251)), index=prev.get("height", 170)-120 if prev.get("height") else 50)
-        weight = st.selectbox("몸무게 (kg)", list(range(30, 201)), index=prev.get("weight", 60)-30 if prev.get("weight") else 30)
+        height = st.selectbox("키 (cm)", list(range(120, 200)), index=prev.get("height", 170)-120 if prev.get("height") else 50)
+        weight = st.selectbox("몸무게 (kg)", list(range(30, 150)), index=prev.get("weight", 60)-30 if prev.get("weight") else 30)
 
     st.divider()
-    st.markdown("### 🩸 건강 정보")
-    col3, col4 = st.columns(2)
-    with col3:
-        fasting_glucose = st.number_input("공복 혈당 (mg/dL)", min_value=50, max_value=300, value=int(prev.get("fasting_glucose", 100)))
-        hba1c = st.number_input("당화혈색소 (%)", min_value=3.0, max_value=15.0, step=0.1, value=float(prev.get("hba1c", 5.6)))
-    with col4:
-        bp_sys = st.number_input("혈압 (수축기 mmHg)", min_value=80, max_value=200, value=int(prev.get("bp_sys", 120)))
-        bp_dia = st.number_input("혈압 (이완기 mmHg)", min_value=50, max_value=130, value=int(prev.get("bp_dia", 80)))
+    st.markdown("### 🏃 생활 습관")
+    daily_exercise = st.number_input("하루 평균 운동 시간 (분)", min_value=0, max_value=300, value=int(prev.get("daily_exercise", 30)))
+    sleep_hours = st.number_input("하루 평균 수면 시간 (시간)", min_value=0, max_value=24, value=int(prev.get("sleep_hours", 7)))
+    smoking = st.radio("흡연 여부", ["비흡연", "과거 흡연", "현재 흡연"], index=["비흡연", "과거 흡연", "현재 흡연"].index(prev.get("smoking", "비흡연")))
+    alcohol = st.radio("음주 여부", ["비음주", "가끔", "자주"], index=["비음주", "가끔", "자주"].index(prev.get("alcohol", "비음주")))
 
     st.divider()
-    st.markdown("### 💊 복약 및 진단 이력")
-    on_medication = st.radio("당뇨약 또는 인슐린 투여 중인가요?", ["예", "아니오"], index=0 if prev.get("on_medication", "아니오") == "예" else 1)
-    diabetes_type = st.selectbox("진단받은 당뇨 유형", ["없음", "제1형", "제2형", "임신성"],
-                                 index=["없음", "제1형", "제2형", "임신성"].index(prev.get("diabetes_type", "없음")))
+    st.markdown("### 🏥 진단 이력")
+    diagnosis_years = st.number_input("당뇨 진단 이력 (년수)", min_value=0, max_value=100, value=int(prev.get("diagnosis_years", 0)))
+    diabetes_type = st.selectbox("당뇨병 타입 (현재)", ["없음", "제1형", "제2형", "임신성"],
+                                index=["없음", "제1형", "제2형", "임신성"].index(prev.get("diabetes_type", "없음")))
+    complications = st.multiselect(
+        "합병증 여부 (해당사항 모두 선택)",
+        ["없음", "혈관", "신장", "신경", "급성"],
+        default=prev.get("complications", ["없음"])
+    )
+    hemoglobin = st.number_input("당화혈색소 검사 (%)", min_value=0, max_value=20, value=int(prev.get("hemoglobin", 7)))
 
-    submitted = st.form_submit_button("✅ 리포트 제출")
+    st.divider()
+    st.markdown("### ⚠️ 증상 및 자가 보고")
+    recent_symptoms = st.text_area("최근 겪으신 증상이나 불편함을 작성해 주세요.", value=prev.get("recent_symptoms", ""))
 
-# 제출 처리
+    st.divider()
+    st.markdown("### 🎯 목표 및 계획")
+    target_weight = st.number_input("목표 체중 (kg)", min_value=30, max_value=200, value=int(prev.get("target_weight", weight)))
+    target_glucose = st.number_input("목표 공복 혈당 (mg/dL)", min_value=50, max_value=300, value=int(prev.get("target_glucose", 100)))
+    target_hba1c = st.number_input("목표 당화혈색소 (%)", min_value=3.0, max_value=15.0, step=0.1, value=float(prev.get("target_hba1c", 7)))
+
+    submitted = st.form_submit_button("저장")
+
 if submitted:
     user_data = {
         "name": name,
@@ -68,29 +83,30 @@ if submitted:
         "gender": gender,
         "height": height,
         "weight": weight,
-        "fasting_glucose": fasting_glucose,
-        "hba1c": hba1c,
-        "bp_sys": bp_sys,
-        "bp_dia": bp_dia,
-        "on_medication": on_medication,
-        "diabetes_type": diabetes_type
+        "daily_exercise": daily_exercise,
+        "sleep_hours": sleep_hours,
+        "smoking": smoking,
+        "alcohol": alcohol,
+        "diagnosis_years": diagnosis_years,
+        "diabetes_type": diabetes_type,
+        "complications": complications,
+        "hemoglobin": hemoglobin,
+        "recent_symptoms": recent_symptoms,
+        "target_weight": target_weight,
+        "target_glucose": target_glucose,
+        "target_hba1c": target_hba1c
     }
 
-
-    all_users = [user_data]  
+    all_users = [user_data]
     save_patient_info(username, all_users, overwrite=True)
     st.session_state["diabetes_report"] = user_data
     st.success(f"✅ {name}님의 리포트가 저장되었습니다!")
 
-# 삭제 처리
 if all_users:
-    if st.button("🗑️ 리포트 삭제하기"):
+    if st.button("삭제"):
         all_users.clear()
         save_patient_info(username, all_users, overwrite=True)
-
-        # 추가: 해당 유저의 혈당 및 복약 데이터도 초기화
         clear_glucose_data(username)
         clear_medications_data(username)
-
         st.success(f"🗑️ {prev['name']}님의 리포트 및 데이터가 삭제되었습니다.")
         st.rerun()

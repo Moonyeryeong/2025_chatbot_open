@@ -32,13 +32,15 @@ if "mode" not in st.session_state:
 # ---------------- 사이드바 (항상 동일하게 표시) ----------------
 with st.sidebar:
     if st.session_state["logged_in"]:
-        st.markdown(f"👤**{st.session_state['username']}님 환영합니다**")
+        st.markdown(f"""<p style='color: black; font-size: 18px;'>👤 {st.session_state['username']}님 환영합니다!</p>""",unsafe_allow_html=True)
         if st.button("로그아웃"):
             st.session_state.clear()
             st.session_state["mode"] = "home"
             st.rerun()
     else:
-        st.markdown("🔐 Sign up")
+        st.markdown(
+        """
+        <h2 style= color: black; font-size: 18px;'>🔐 Sign Up </h2>""", unsafe_allow_html=True)
         col1, col2 = st.columns([1, 1])
 
         with col1:
@@ -50,6 +52,9 @@ with st.sidebar:
             if st.button("회원가입", use_container_width=True):
                 st.session_state["mode"] = "signup"
                 st.rerun()
+
+
+
 # ---------------- 로그인 화면 ----------------
 def show_login():
     st.title("🔐 로그인")
@@ -116,18 +121,22 @@ diet = st.Page("about/diet.py", title="식단", icon=":material/restaurant:")
 prevention = st.Page("about/prevention.py", title="예방", icon=":material/masks:")
 symptoms = st.Page("about/symptoms.py", title="증상", icon=":material/sick:")
 treatment = st.Page("about/treatment.py", title="치료", icon=":material/medical_services:")
+gi = st.Page("about/gi.py", title="GI지수", icon=":material/rice_bowl:")
+
 
 personal_info = st.Page("reports/personal_info.py", title="개인정보", icon=":material/account_circle:")
 glucose = st.Page("reports/glucose.py", title="혈당관리", icon=":material/glucose:")
 medication = st.Page("reports/medication.py", title="복용약", icon=":material/pill:")
 final_report = st.Page("reports/final_report.py", title="리포트", icon=":material/description:")
+personal_diet = st.Page("reports/personal_diet.py", title="식단관리", icon=":material/egg_alt:")
+
 
 pg = st.navigation(
     {
         "🏠 Home": [home],
         "🤖 Chatbot": [chatbot],
-        "❓ About diabetes": [diet, prevention, symptoms, treatment],
-        "📋 Reports": [personal_info, glucose, medication, final_report],
+        "❓ About diabetes": [diet, prevention, symptoms, treatment, gi],
+        "📋 Reports": [personal_info, glucose, personal_diet, medication, final_report],
     }
 )
 
