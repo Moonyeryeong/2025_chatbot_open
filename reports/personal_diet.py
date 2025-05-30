@@ -153,7 +153,7 @@ with st.form("diet_form"):
 st.markdown("---")
 # ================== 기록 조회 ==================
 if user_data:
-    st.markdown("#### 📊 식단 기록")
+    st.markdown("#### 📋 식단 기록")
     st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
     records = []
